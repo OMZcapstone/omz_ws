@@ -1,0 +1,35 @@
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# Local workspace snapshots (large tarballs)
+snapshots/
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+lingbot_env/
+
+# Local model/checkpoint artifacts
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Editor and assistant-local state
+.claude/
+.vscode/
+
+# Local runtime files
+*.bag
+*.db
+*.db3
+*.sqlite3
+
+# Local media/checkpoint artifacts
+*.mp4

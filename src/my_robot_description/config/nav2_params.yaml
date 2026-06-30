@@ -1,0 +1,631 @@
+# ============================================================
+# Nav2 tuned configuration for very low-speed real robot
+# 실제 차량 속도: 약 0.03 ~ 0.05 m/s 기준
+#
+# 주요 튜닝 목적
+# 1. 너무 짧게 보고 찔끔찔끔 움직이는 문제 완화
+# 2. 오른쪽으로 몸체를 계속 트는 현상 완화
+# 3. 저속 주행에 맞게 DWB 예측 시간 증가
+# 4. AMCL 위치 갱신을 저속 차량에 맞게 더 자주 수행
+# 5. progress_checker가 너무 오래 기다리지 않도록 현실화
+# ============================================================
+
+
+# ============================================================
+# AMCL
+# map 위에서 로봇의 현재 위치를 추정하는 노드
+# LiDAR scan과 map을 비교하여 map -> odom 변환을 추정한다.
+# ============================================================
+amcl:
+  ros__parameters:
+    use_sim_time: false                  # 실제 로봇이면 false, Gazebo/시뮬레이션이면 true
+
+    # --------------------------------------------------------
+    # Motion model noise parameters
+    # odom이 얼마나 믿을 만한지에 대한 노이즈 계수
+    # 값이 클수록 odom을 덜 믿고 particle 분포가 더 퍼진다.
+    # --------------------------------------------------------
+    alpha1: 0.2                          # 회전 -> 회전 오차
+    alpha2: 0.2                          # 직진 -> 회전 오차
+    alpha3: 0.2                          # 직진 -> 직진 오차
+    alpha4: 0.2                          # 회전 -> 직진 오차
+    alpha5: 0.2                          # omni 모델용 오차, differential에서는 영향이 작음
+
+    # --------------------------------------------------------
+    # Frame settings
+    # map: 전역 지도 좌표계
+    # odom: 바퀴/센서 기반 누적 위치 좌표계
+    # base_footprint: 로봇 바닥 중심 좌표계
+    # --------------------------------------------------------
+    base_frame_id: base_footprint        # 로봇 기준 프레임
+    global_frame_id: map                 # 전역 기준 프레임
+    odom_frame_id: odom                  # odometry 기준 프레임
+
+    # --------------------------------------------------------
+    # Laser beam skip
+    # scan 일부가 map과 크게 안 맞을 때 빔을 건너뛰는 기능
+    # 실내 map이 깔끔하고 LiDAR가 안정적이면 false 권장
+    # --------------------------------------------------------
+    do_beamskip: false                   # 빔 스킵 사용 여부
+    beam_skip_distance: 0.5              # 이 거리 이상 안 맞는 빔은 후보
+    beam_skip_threshold: 0.3             # 빔 스킵 판단 비율
+    beam_skip_error_threshold: 0.9       # 너무 많이 안 맞으면 스킵 중단
+
+    # --------------------------------------------------------
+    # Laser model parameters
+    # likelihood_field는 Nav2에서 많이 쓰는 AMCL laser model
+    # --------------------------------------------------------
+    laser_model_type: likelihood_field   # map과 scan의 likelihood field 기반 정합
+    laser_likelihood_max_dist: 2.0       # 장애물과의 최대 likelihood 계산 거리
+    laser_max_range: 16.0                # LiDAR 최대 거리
+    laser_min_range: 0.05                # LiDAR 최소 거리
+    max_beams: 60                        # AMCL에 사용할 scan beam 개수, 높이면 정확도↑ CPU↑
+
+    # --------------------------------------------------------
+    # Particle filter settings
+    # particle이 많을수록 안정적이지만 CPU 사용량 증가
+    # --------------------------------------------------------
+    min_particles: 500                   # 최소 particle 개수
+    max_particles: 1000                  # 최대 particle 개수 (Jetson CPU 부하 완화)
+    pf_err: 0.05                         # particle filter 허용 오차
+    pf_z: 0.99                           # particle filter 신뢰도 계수
+
+    # --------------------------------------------------------
+    # Recovery alpha
+    # 납치된 로봇 문제 등에서 particle을 퍼뜨리는 회복 기능
+    # 0이면 비활성에 가까움
+    # --------------------------------------------------------
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+
+    resample_interval: 1                 # 몇 번 업데이트마다 resampling할지
+    robot_model_type: nav2_amcl::DifferentialMotionModel  # 차동 구동 모델
+
+    save_pose_rate: 0.5                  # 추정 위치 저장 주기
+
+    # --------------------------------------------------------
+    # Laser likelihood weights
+    # z_hit + z_short + z_max + z_rand 합이 보통 1 근처가 되도록 설정
+    # --------------------------------------------------------
+    sigma_hit: 0.2                       # scan hit의 표준편차
+    lambda_short: 0.1                    # 예상보다 짧은 scan에 대한 지수분포 계수
+    z_hit: 0.5                           # map과 scan이 잘 맞는 hit 가중치
+    z_short: 0.05                        # 예상보다 짧게 측정된 scan 가중치
+    z_max: 0.05                          # 최대 거리 측정값 가중치
+    z_rand: 0.4                          # 랜덤 측정값 가중치 (합계 1.0 유지)
+
+    tf_broadcast: true                   # map -> odom TF를 AMCL이 발행
+    transform_tolerance: 1.0             # TF 시간 허용 오차
+
+    # --------------------------------------------------------
+    # 저속 차량용 핵심 수정
+    # 기존 update_min_d: 0.25는 0.03~0.05m/s 차량에는 너무 큼
+    # 25cm 움직여야 AMCL이 갱신되므로 위치 반응이 둔할 수 있음
+    # --------------------------------------------------------
+    update_min_d: 0.05                   # 5cm 이동마다 AMCL 갱신
+    update_min_a: 0.10                   # 약 0.10rad 회전마다 AMCL 갱신
+
+    scan_topic: /scan                    # LiDAR scan topic
+
+
+# ============================================================
+# BT Navigator
+# Behavior Tree 기반으로 navigation action을 실행하는 노드
+# 현재는 spin 동작을 줄인 custom BT XML을 사용 중
+# ============================================================
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map                    # navigation 전역 기준 프레임
+    robot_base_frame: base_footprint     # 로봇 기준 프레임
+    odom_topic: /odom                    # odometry topic
+
+    # --------------------------------------------------------
+    # Custom behavior tree
+    # no_spin XML을 사용하면 목적지 접근 시 불필요한 제자리 회전을 줄일 수 있음
+    # --------------------------------------------------------
+    default_bt_xml_filename: /home/omz/omz_ws/install/my_robot_description/share/my_robot_description/behavior_trees/navigate_to_pose_no_spin.xml
+    default_nav_to_pose_bt_xml: /home/omz/omz_ws/install/my_robot_description/share/my_robot_description/behavior_trees/navigate_to_pose_no_spin.xml
+    default_nav_through_poses_bt_xml: /home/omz/omz_ws/install/my_robot_description/share/my_robot_description/behavior_trees/navigate_through_poses_no_spin.xml
+
+    bt_loop_duration: 200                # BT loop 주기(ms), 저속 로봇은 5Hz로 충분
+    default_server_timeout: 20           # action/service timeout
+    enable_groot_monitoring: false       # Groot 모니터링 사용 여부
+
+    # --------------------------------------------------------
+    # BT plugin list
+    # Behavior Tree에서 사용할 수 있는 action/condition/control node 목록
+    # --------------------------------------------------------
+    plugin_lib_names:
+    - nav2_compute_path_to_pose_action_bt_node
+    - nav2_compute_path_through_poses_action_bt_node
+    - nav2_follow_path_action_bt_node
+    - nav2_back_up_action_bt_node
+    - nav2_spin_action_bt_node
+    - nav2_wait_action_bt_node
+    - nav2_clear_costmap_service_bt_node
+    - nav2_is_stuck_condition_bt_node
+    - nav2_goal_reached_condition_bt_node
+    - nav2_goal_updated_condition_bt_node
+    - nav2_initial_pose_received_condition_bt_node
+    - nav2_reinitialize_global_localization_service_bt_node
+    - nav2_rate_controller_bt_node
+    - nav2_distance_controller_bt_node
+    - nav2_speed_controller_bt_node
+    - nav2_truncate_path_action_bt_node
+    - nav2_goal_updater_node_bt_node
+    - nav2_recovery_node_bt_node
+    - nav2_pipeline_sequence_bt_node
+    - nav2_round_robin_node_bt_node
+    - nav2_transform_available_condition_bt_node
+    - nav2_time_expired_condition_bt_node
+    - nav2_distance_traveled_condition_bt_node
+    - nav2_single_trigger_bt_node
+    - nav2_is_battery_low_condition_bt_node
+    - nav2_navigate_through_poses_action_bt_node
+    - nav2_navigate_to_pose_action_bt_node
+    - nav2_remove_passed_goals_action_bt_node
+    - nav2_planner_selector_bt_node
+    - nav2_controller_selector_bt_node
+    - nav2_goal_checker_selector_bt_node
+
+
+# ============================================================
+# Controller Server
+# local planner를 실행해서 /cmd_vel을 만드는 핵심 노드
+# 현재 DWBLocalPlanner 사용
+# ============================================================
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 10.0           # 저속 실차에서도 제어 갱신이 끊겨 보이지 않도록 10Hz 사용
+
+    # --------------------------------------------------------
+    # 너무 작은 속도 명령을 0으로 볼지 결정하는 threshold
+    # y축 이동이 없는 differential robot이면 min_y_velocity_threshold는 크게 둬도 무방
+    # --------------------------------------------------------
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+
+    failure_tolerance: 2.0               # 유효 궤적이 없을 때 너무 오래 조용히 멈춰 있지 않도록 제한
+
+    progress_checker_plugin: progress_checker
+    goal_checker_plugins: ["general_goal_checker"]
+    current_goal_checker: general_goal_checker
+    controller_plugins: ["FollowPath"]
+
+    # --------------------------------------------------------
+    # Progress Checker
+    # 로봇이 실제로 진행 중인지 판단
+    #
+    # 기존:
+    # required_movement_radius: 0.01
+    # movement_time_allowance: 60.0
+    #
+    # 문제:
+    # 60초 동안 1cm만 움직여도 정상 진행으로 볼 수 있어 막힘 감지가 너무 늦음
+    #
+    # 수정:
+    # 저속 차량 기준 30초 동안 최소 3cm는 움직여야 진행 중으로 판단
+    # --------------------------------------------------------
+    progress_checker:
+      plugin: nav2_controller::SimpleProgressChecker
+      required_movement_radius: 0.03     # 진행 판단 최소 이동 거리
+      movement_time_allowance: 30.0      # 위 거리만큼 움직여야 하는 제한 시간
+
+    # --------------------------------------------------------
+    # Goal Checker
+    # 목적지 도착 판정 기준
+    # yaw tolerance가 너무 작으면 목적지 근처에서 계속 회전할 수 있음
+    # 현재 값은 저속 차량에 적당히 관대함
+    # --------------------------------------------------------
+    general_goal_checker:
+      stateful: true
+      plugin: nav2_controller::SimpleGoalChecker
+      xy_goal_tolerance: 0.20            # 목표 위치 허용 오차 20cm
+      yaw_goal_tolerance: 0.25           # 목표 방향 허용 오차 약 14.3도
+
+    # --------------------------------------------------------
+    # DWB Local Planner
+    # 여러 속도 후보를 샘플링한 뒤 cost가 가장 낮은 궤적을 선택한다.
+    # --------------------------------------------------------
+    FollowPath:
+      plugin: dwb_core::DWBLocalPlanner
+      debug_trajectory_details: false    # 운용 중에는 false, 궤적 디버깅 시에만 true로
+
+      # ------------------------------------------------------
+      # Linear velocity
+      # 실제 차량 속도가 0.07m/s까지 가능하므로 max_vel_x를 맞춤
+      # ------------------------------------------------------
+      min_vel_x: 0.0                     # 경로 정렬이 필요할 때 제자리/저속 회전 후보를 허용
+      min_vel_y: 0.0                     # differential robot은 y축 이동 없음
+      max_vel_x: 0.05                    # 자율주행 중 AMCL 정합이 깨지지 않도록 보수적으로 제한
+      max_vel_y: 0.0                     # y축 이동 없음
+
+      # ------------------------------------------------------
+      # Angular velocity
+      # 좌우 흔들림을 줄이되, 초기 경로 정렬에 필요한 회전 여유는 유지
+      # ------------------------------------------------------
+      max_vel_theta: 0.15                # global path 방향을 따라잡을 수 있도록 회전 여유 확보
+      min_speed_theta: 0.0               # 전진보다 회전 후보가 강제 선택되지 않도록 허용
+
+      # ------------------------------------------------------
+      # Speed limits
+      # max_speed_xy는 max_vel_x와 맞춰야 함
+      # ------------------------------------------------------
+      min_speed_xy: 0.0
+      max_speed_xy: 0.05
+
+      # ------------------------------------------------------
+      # Acceleration limits
+      # 실제 차량이 매우 저속이므로 기존 선형 가속도 유지
+      # ------------------------------------------------------
+      acc_lim_x: 0.05                    # 자율주행 명령을 수동 주행처럼 부드럽게 제한
+      acc_lim_y: 0.0
+      acc_lim_theta: 0.15                # 회전 가속도 제한
+      decel_lim_x: -0.05                 # 선형 감속도 제한 (부드러운 감속 유지)
+      decel_lim_y: 0.0
+      decel_lim_theta: -0.15             # 회전 감속도 제한
+
+      # ------------------------------------------------------
+      # Sampling
+      # DWB가 평가할 속도 후보 개수
+      # 너무 적으면 궤적 선택이 거칠고, 너무 많으면 CPU 부담 증가
+      # ------------------------------------------------------
+      vx_samples: 12
+      vtheta_samples: 20
+      # differential robot은 y속도 범위가 0이어도 샘플 개수는 1 이상이어야 trajectory 평가가 안정적이다.
+      vy_samples: 1
+
+      # ------------------------------------------------------
+      # 핵심 수정 1: sim_time
+      #
+      # 기존 sim_time: 1.0
+      # 속도 0.07m/s에서 1초 예측 = 7cm만 보고 판단
+      # 그래서 찔끔 움직이고 몸체를 트는 궤적이 반복될 수 있음
+      #
+      # 수정 sim_time: 2.0
+      # 속도 0.05m/s에서 2.0초 예측 = 약 10cm를 보고 판단
+      # 너무 길면 좁은 공간에서 모든 후보 궤적이 충돌로 버려질 수 있음
+      # ------------------------------------------------------
+      sim_time: 2.0
+
+      # ------------------------------------------------------
+      # Trajectory granularity
+      # 궤적 평가 간격
+      # 저속에서는 linear_granularity를 0.025로 줄이면 더 촘촘히 평가 가능
+      # ------------------------------------------------------
+      linear_granularity: 0.05
+      angular_granularity: 0.05
+
+      transform_tolerance: 1.0           # TF 시간 허용 오차
+
+      xy_goal_tolerance: 0.20            # DWB 내부 목표 위치 허용 오차
+      trans_stopped_velocity: 0.002      # 이 속도 이하면 정지로 판단
+
+      short_circuit_trajectory_evaluation: true  # 낮은 cost 궤적을 찾으면 평가 단축
+      stateful: true
+
+      # ------------------------------------------------------
+      # Critics
+      # DWB는 아래 critic들의 점수를 합산하여 최종 궤적을 고른다.
+      # ------------------------------------------------------
+      critics: ["Oscillation", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist"]
+
+      # ------------------------------------------------------
+      # BaseObstacle
+      # 장애물과 가까운 궤적을 벌점 처리
+      # 기존 0.02는 약간 약할 수 있어 0.03으로 소폭 증가
+      # 너무 키우면 좁은 복도에서 못 가는 것처럼 보일 수 있음
+      # ------------------------------------------------------
+      BaseObstacle.scale: 0.08
+
+      # ------------------------------------------------------
+      # PathAlign
+      # 로봇 진행 방향이 global path 방향과 얼마나 잘 맞는지 평가
+      #
+      # 기존 forward_point_distance: 0.05
+      # 로봇 몸체 크기에 비해 너무 가까운 점만 보고 정렬함
+      #
+      # 수정: 0.25
+      # 조금 더 앞을 보고 방향을 잡도록 변경
+      # ------------------------------------------------------
+      PathAlign.scale: 12.0
+      PathAlign.forward_point_distance: 0.25
+
+      # ------------------------------------------------------
+      # GoalAlign
+      # 목표 방향으로 잘 정렬되는지 평가
+      # 목적지 근처에서 방향을 맞추는 데 관여
+      # 너무 강하면 목적지 근처에서 회전이 많아질 수 있음
+      # ------------------------------------------------------
+      GoalAlign.scale: 1.0
+      GoalAlign.forward_point_distance: 0.25
+
+      # ------------------------------------------------------
+      # PathDist
+      # global path에서 멀어지는 궤적에 벌점
+      # 값을 높이면 path를 강하게 따라가려고 함
+      # ------------------------------------------------------
+      PathDist.scale: 64.0
+
+      # ------------------------------------------------------
+      # GoalDist
+      # 목표점에서 멀어지는 궤적에 벌점
+      # 값을 높이면 목표점으로 더 직접 가려고 함
+      # ------------------------------------------------------
+      GoalDist.scale: 12.0
+
+
+# ============================================================
+# Local Costmap
+# 로봇 주변의 근거리 장애물 지도
+# DWB local planner가 직접 참고하는 중요한 costmap
+# ============================================================
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      update_frequency: 4.0              # local costmap 갱신 주기
+      publish_frequency: 2.0             # RViz 등에 publish하는 주기
+
+      global_frame: odom                 # local costmap은 odom 기준
+      robot_base_frame: base_footprint
+      transform_tolerance: 1.0
+
+      rolling_window: true               # 로봇을 중심으로 costmap 창이 따라다님
+      width: 5                           # local costmap 가로 크기 5m
+      height: 5                          # local costmap 세로 크기 5m
+      resolution: 0.05                   # costmap 해상도 5cm/cell
+
+      # ------------------------------------------------------
+      # Robot footprint
+      # 실제 로봇 외곽 크기
+      # 현재 설정: 앞뒤 0.28m, 좌우 0.25m
+      # 즉 전체 길이 약 0.56m, 폭 약 0.50m
+      #
+      # 실제 차량 크기보다 크게 잡히면 통로가 막힌 것처럼 보일 수 있음
+      # 실제 차량 크기보다 작게 잡히면 충돌 위험 증가
+      # ------------------------------------------------------
+      footprint: "[[0.28, 0.25], [0.28, -0.25], [-0.28, -0.25], [-0.28, 0.25]]"
+
+      plugins: ["obstacle_layer", "inflation_layer"]
+      filters: ["keepout_filter"]
+
+      # ------------------------------------------------------
+      # Obstacle Layer
+      # LiDAR scan을 이용해 장애물을 marking/clearing
+      # ------------------------------------------------------
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        enabled: true
+        observation_sources: scan
+
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0       # 이 높이 이하 장애물만 사용
+          clearing: true                 # scan ray로 빈 공간 clearing
+          marking: true                  # scan hit 지점을 장애물로 marking
+          data_type: LaserScan
+          raytrace_max_range: 3.0        # 빈 공간 clearing 최대 거리
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5        # 장애물 marking 최대 거리
+          obstacle_min_range: 0.08       # 너무 가까운 scan 노이즈 제거
+
+      # ------------------------------------------------------
+      # Inflation Layer
+      # 장애물 주변에 비용을 퍼뜨려 안전거리 확보
+      #
+      # local_costmap은 실제 충돌 회피에 직접 영향
+      # 오른쪽으로 계속 튼다면 RViz에서 정면 costmap이 막혀 있는지 확인 필요
+      # ------------------------------------------------------
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.30           # footprint inscribed radius보다 크게 두어 벽/장애물에 너무 붙지 않게 함
+        cost_scaling_factor: 5.0         # 비용이 감소하는 정도, 작을수록 비용이 멀리 퍼짐
+
+      # ------------------------------------------------------
+      # Keepout Filter
+      # local planner가 짧은 궤적을 평가할 때도 keepout mask를 장애물처럼 보게 한다.
+      # mask는 map 기준이고 local_costmap은 odom 기준이므로 map -> odom TF가 안정적이어야 함.
+      # ------------------------------------------------------
+      keepout_filter:
+        plugin: nav2_costmap_2d::KeepoutFilter
+        enabled: true
+        filter_info_topic: /costmap_filter_info
+
+      always_send_full_costmap: false
+
+
+# ============================================================
+# Global Costmap
+# map 전체 또는 넓은 범위의 전역 costmap
+# global planner가 경로를 만들 때 사용
+# ============================================================
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      update_frequency: 1.0              # global costmap 갱신 주기
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: base_footprint
+      transform_tolerance: 1.0
+      resolution: 0.05
+
+      track_unknown_space: true          # unknown 영역을 따로 관리
+      footprint: "[[0.28, 0.25], [0.28, -0.25], [-0.28, -0.25], [-0.28, 0.25]]"
+
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      filters: ["keepout_filter"]
+
+      # ------------------------------------------------------
+      # Static Layer
+      # map_server에서 받은 정적 map을 costmap에 반영
+      # ------------------------------------------------------
+      static_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_subscribe_transient_local: true
+
+      # ------------------------------------------------------
+      # Obstacle Layer
+      # global costmap에도 scan 기반 동적 장애물을 반영
+      # ------------------------------------------------------
+      obstacle_layer:
+        plugin: nav2_costmap_2d::ObstacleLayer
+        enabled: true
+        observation_sources: scan
+
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: true
+          marking: true
+          data_type: LaserScan
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.08
+
+      # ------------------------------------------------------
+      # Global inflation
+      # 전역 경로가 장애물과 너무 붙지 않게 함
+      # ------------------------------------------------------
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.30
+        cost_scaling_factor: 4.0
+
+      # ------------------------------------------------------
+      # Keepout Filter
+      # 실제 map 위에 별도 keepout mask를 얹어 금지구역을 만든다.
+      # mask는 nav2_navigation.launch.py에서 keepout_filter_mask로 publish한다.
+      # ------------------------------------------------------
+      keepout_filter:
+        plugin: nav2_costmap_2d::KeepoutFilter
+        enabled: true
+        filter_info_topic: /costmap_filter_info
+
+      always_send_full_costmap: false
+
+
+# ============================================================
+# Map Server
+# 저장된 map yaml을 읽어 /map으로 publish하는 노드
+# launch 파일에서 yaml_filename을 넣는 경우 여기서는 빈 문자열 가능
+# ============================================================
+map_server:
+  ros__parameters:
+    use_sim_time: false
+    yaml_filename: ""
+
+
+# ============================================================
+# Map Saver
+# SLAM으로 만든 map을 저장할 때 사용하는 노드
+# ============================================================
+map_saver:
+  ros__parameters:
+    use_sim_time: false
+    save_map_timeout: 5.0
+    free_thresh_default: 0.25            # 이 값보다 낮으면 free로 저장
+    occupied_thresh_default: 0.65        # 이 값보다 높으면 occupied로 저장
+    map_subscribe_transient_local: true
+
+
+# ============================================================
+# Planner Server
+# global path를 생성하는 노드
+# 현재 NavfnPlanner 사용
+# ============================================================
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 0.5      # planner 기대 실행 주기
+    planner_plugins: ["GridBased"]
+
+    GridBased:
+      plugin: nav2_navfn_planner/NavfnPlanner
+      tolerance: 0.5                     # 목표점 주변 허용 탐색 거리
+      use_astar: true                    # A* 사용으로 Dijkstra 대비 경로 탐색 속도 향상
+      allow_unknown: false                # unknown 영역 통과 허용
+
+
+# ============================================================
+# Behavior Server
+# recovery behavior, wait, backup, spin 등을 실행하는 노드
+# 현재는 wait만 사용
+# ============================================================
+behavior_server:
+  ros__parameters:
+    use_sim_time: false
+
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+
+    # --------------------------------------------------------
+    # 현재 wait만 사용
+    # spin/back_up을 쓰지 않으면 불필요한 회전/후진 recovery를 줄일 수 있음
+    # --------------------------------------------------------
+    behavior_plugins: ["wait"]
+
+    wait:
+      plugin: nav2_behaviors/Wait
+
+    global_frame: odom
+    robot_base_frame: base_footprint
+    transform_timeout: 1.0
+    simulate_ahead_time: 2.0
+
+    max_rotational_vel: 0.05             # recovery 회전도 실차 정합이 깨지지 않도록 제한
+    min_rotational_vel: 0.01
+    rotational_acc_lim: 0.05
+
+
+# ============================================================
+# Velocity Smoother
+# controller가 낸 /cmd_vel을 부드럽게 제한해서 최종 속도 명령으로 변환
+# 실제 차량 최대 속도와 반드시 맞춰야 한다.
+# ============================================================
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: false
+
+    smoothing_frequency: 20.0            # 속도 smoothing 주기
+    scale_velocities: false              # 전체 속도를 비율로 줄일지 여부
+    feedback: OPEN_LOOP                  # odom feedback 없이 명령 기반 smoothing
+
+    # --------------------------------------------------------
+    # 실제 차량 속도 제한
+    # x: 전후진, y: 좌우, theta: 회전
+    # --------------------------------------------------------
+    max_velocity: [0.06, 0.0, 0.08]      # 최대 속도 [x, y, theta]
+    min_velocity: [0.0, 0.0, -0.08]      # 자동주행 중 후진 명령 방지
+
+    max_accel: [0.06, 0.0, 0.08]         # 최대 가속도 (DWB acc_lim_x와 맞춤)
+    max_decel: [-0.06, 0.0, -0.08]       # 최대 감속도
+
+    odom_topic: /odom
+    odom_duration: 0.1                   # odom feedback 확인 시간
+    deadband_velocity: [0.0, 0.0, 0.0]   # 이 값 이하는 0으로 처리
+    velocity_timeout: 1.0                # 명령 없을 때 정지 처리 시간
+
+
+# ============================================================
+# Waypoint Follower
+# 여러 waypoint를 순서대로 따라갈 때 사용하는 노드
+# ============================================================
+waypoint_follower:
+  ros__parameters:
+    use_sim_time: false
+    loop_rate: 20                        # waypoint follower loop 주기
+    stop_on_failure: false               # waypoint 실패 시 계속 진행할지 여부
+
+    waypoint_task_executor_plugin: wait_at_waypoint
+
+    wait_at_waypoint:
+      plugin: nav2_waypoint_follower::WaitAtWaypoint
+      enabled: true
+      waypoint_pause_duration: 200       # waypoint 도착 후 대기 시간(ms)

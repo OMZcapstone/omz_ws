@@ -1,0 +1,100 @@
+# ============================================================
+# Nav2 Keepout Zone 설정 추가 예시
+# 노란색으로 표시한 영역만 주행 가능하고,
+# 나머지 영역은 keepout zone으로 막는 구조입니다.
+# ============================================================
+
+# ------------------------------------------------------------
+# 1) Keepout mask를 publish하는 map server
+# ------------------------------------------------------------
+keepout_filter_mask_server:
+  ros__parameters:
+    use_sim_time: false
+
+    # keepout_mask.yaml 파일 경로입니다.
+    # 실제 launch 위치에 맞게 절대경로 또는 패키지 내부 경로로 바꿔도 됩니다.
+    yaml_filename: "keepout_mask.yaml"
+
+    # keepout mask가 publish될 topic 이름입니다.
+    # 아래 costmap_filter_info_server의 mask_topic과 반드시 같아야 합니다.
+    topic_name: "keepout_filter_mask"
+
+    # mask 기준 좌표계입니다. 기존 map과 같은 frame을 사용합니다.
+    frame_id: "map"
+
+
+# ------------------------------------------------------------
+# 2) Costmap filter info server
+# ------------------------------------------------------------
+keepout_costmap_filter_info_server:
+  ros__parameters:
+    use_sim_time: false
+
+    # type: 0 = Keepout Filter
+    type: 0
+
+    # KeepoutFilter plugin이 구독할 filter 정보 topic입니다.
+    filter_info_topic: "keepout_costmap_filter_info"
+
+    # 위 keepout_filter_mask_server의 topic_name과 같아야 합니다.
+    mask_topic: "keepout_filter_mask"
+
+    # mask 값을 cost 값으로 변환할 때 사용하는 계수입니다.
+    # keepout에서는 보통 기본값처럼 사용합니다.
+    base: 0.0
+    multiplier: 1.0
+
+
+# ------------------------------------------------------------
+# 3) global_costmap에 KeepoutFilter 추가
+# ------------------------------------------------------------
+global_costmap:
+  global_costmap:
+    ros__parameters:
+
+      # 기존 plugins는 그대로 유지하고,
+      # filters 항목만 추가하거나 기존 filters에 keepout_filter를 추가합니다.
+      filters: ["keepout_filter"]
+
+      keepout_filter:
+        plugin: "nav2_costmap_2d::KeepoutFilter"
+        enabled: True
+
+        # 위 keepout_costmap_filter_info_server의 filter_info_topic과 같아야 합니다.
+        filter_info_topic: "keepout_costmap_filter_info"
+
+
+# ------------------------------------------------------------
+# 4) local_costmap에 KeepoutFilter 추가
+# ------------------------------------------------------------
+local_costmap:
+  local_costmap:
+    ros__parameters:
+
+      # local에도 넣어야 실제 주행 중 금지구역 진입을 더 강하게 막을 수 있습니다.
+      filters: ["keepout_filter"]
+
+      keepout_filter:
+        plugin: "nav2_costmap_2d::KeepoutFilter"
+        enabled: True
+        filter_info_topic: "keepout_costmap_filter_info"
+
+
+# ------------------------------------------------------------
+# 5) lifecycle_manager 사용 시 node_names에 추가
+# ------------------------------------------------------------
+# 기존 lifecycle_manager_navigation의 node_names에
+# 아래 두 노드를 추가해야 자동 activate 됩니다.
+#
+# lifecycle_manager_navigation:
+#   ros__parameters:
+#     node_names:
+#       - controller_server
+#       - smoother_server
+#       - planner_server
+#       - behavior_server
+#       - bt_navigator
+#       - waypoint_follower
+#       - velocity_smoother
+#       - keepout_filter_mask_server
+#       - keepout_costmap_filter_info_server

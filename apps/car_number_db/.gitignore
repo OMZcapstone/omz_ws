@@ -1,0 +1,4 @@
+/venv
+/venv/Lib
+/venv/Lib/site-packages
+/venv/Lib/site-packages/pip-25.3.dist-info

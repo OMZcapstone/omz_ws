@@ -1,0 +1,36 @@
+[submodule "src/DynamixelSDK"]
+	path = src/DynamixelSDK
+	url = https://github.com/ROBOTIS-GIT/DynamixelSDK.git
+	branch = humble
+[submodule "src/OrbbecSDK_ROS2"]
+	path = src/OrbbecSDK_ROS2
+	url = https://github.com/orbbec/OrbbecSDK_ROS2.git
+	branch = v2-main
+[submodule "src/lingbot-map"]
+	path = src/lingbot-map
+	url = https://github.com/Robbyant/lingbot-map.git
+	branch = main
+[submodule "src/md_motor_driver_ros2"]
+	path = src/md_motor_driver_ros2
+	url = https://github.com/Lee-seokgwon/md_motor_driver_ros2.git
+	branch = main
+[submodule "src/ros_wit_imu_node"]
+	path = src/ros_wit_imu_node
+	url = https://github.com/Ericsii/ros_wit_imu_node.git
+	branch = main
+[submodule "src/sllidar_ros2"]
+	path = src/sllidar_ros2
+	url = https://github.com/Slamtec/sllidar_ros2.git
+	branch = main
+[submodule "src/turtlebot3"]
+	path = src/turtlebot3
+	url = https://github.com/ROBOTIS-GIT/turtlebot3.git
+	branch = humble
+[submodule "src/turtlebot3_msgs"]
+	path = src/turtlebot3_msgs
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
+	branch = humble
+[submodule "src/turtlebot3_simulations"]
+	path = src/turtlebot3_simulations
+	url = https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
+	branch = humble

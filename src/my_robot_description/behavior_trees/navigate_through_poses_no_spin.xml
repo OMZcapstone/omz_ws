@@ -1,0 +1,23 @@
+<!-- Through-poses navigation tree for real robot: no spin/backup recovery.
+     - Replans path at 0.5 Hz for stable low-speed navigation.
+     - RecoveryNode retries up to 2 times on FollowPath failure:
+       clears local costmap then waits 2 s before retrying. -->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="2" name="NavigateRecovery">
+      <PipelineSequence name="NavigateThroughPosesWithReplanning">
+        <RateController hz="0.5">
+          <ReactiveSequence>
+            <RemovePassedGoals input_goals="{goals}" output_goals="{goals}" radius="0.25"/>
+            <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+          </ReactiveSequence>
+        </RateController>
+        <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="general_goal_checker"/>
+      </PipelineSequence>
+      <Sequence name="RecoveryActions">
+        <ClearEntireCostmap name="ClearLocal" service_name="local_costmap/clear_entirely_local_costmap"/>
+        <Wait wait_duration="2.0"/>
+      </Sequence>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>
