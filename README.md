@@ -23,6 +23,7 @@ SLAM으로 만든 지도 위를 Nav2로 순찰하며, 카메라로 차량·보�
 - [프로젝트 개요](#-프로젝트-개요)
 - [시스템 아키텍처](#-시스템-아키텍처)
 - [하드웨어 구성](#-하드웨어-구성)
+- [실물 & 하드웨어 참고자료](#-실물--하드웨어-참고자료)
 - [TF 트리 & 좌표계](#-tf-트리--좌표계)
 - [저장소 구조](#-저장소-구조)
 - [패키지 카탈로그](#-패키지-카탈로그)
@@ -75,7 +76,7 @@ flowchart LR
         S1 <--> S2
     end
 
-    subgraph JET["🟩 Jetson — 로봇 본체 (ROS 2 Humble)"]
+    subgraph JET["🟩 Jetson Orin Nano — 로봇 본체 (ROS 2 Humble)"]
         direction TB
         B1["robot_bringup<br/>md_controller · sllidar · IMU"]
         B2["Nav2<br/>AMCL · NavFn · DWB · KeepoutFilter"]
@@ -98,7 +99,7 @@ flowchart LR
 
 | 노드 | 역할 | 통신 |
 |------|------|------|
-| **Jetson** | ROS 2 전체 스택(주행·SLAM·Nav2·YOLO·표정·TTS) | DDS, TCP 9997 / 9999 서버 |
+| **Jetson Orin Nano** | ROS 2 전체 스택(주행·SLAM·Nav2·YOLO·표정·TTS) | DDS, TCP 9997 / 9999 서버 |
 | **Raspberry Pi** | 번호판 YOLO + EasyOCR, 차량 3D 위치 송신 | HTTP → FastAPI, TCP → Jetson |
 | **관제 PC/서버** | 입·출차 등록 DB, 번호판 유사도 검증 API | FastAPI + SQLite |
 
@@ -108,17 +109,89 @@ flowchart LR
 
 | 구분 | 장비 | 인터페이스 | 관련 패키지 |
 |------|------|-----------|-------------|
+| 메인 보드 | **NVIDIA Jetson Orin Nano** | — | ROS 2 전체 스택 |
+| 전원 | **24 V 배터리**(구동) + **12 V 배터리**(연산·센서), PDB 경유 분배 | — | — |
 | 구동부 | **MDROBOT 듀얼채널 모터 드라이버** (md200t) | RS485 / USB, 19200 bps | `md_controller` |
-| 바퀴 | 인휠 모터 ×2 (반지름 65 mm, 축간 288 mm) + 후방 캐스터 | — | URDF `two_wheel_caster_robot` |
-| LiDAR | **Slamtec RPLIDAR C1** | USB CP2102N, 460800 bps | `sllidar_ros2` |
+| 바퀴 | **MDROBOT 인휠 모터** ×2 (반지름 65 mm, 축간 288 mm) + 후방 캐스터 | — | URDF `two_wheel_caster_robot` |
+| LiDAR | **Slamtec RPLIDAR C1** (전용 폴 상단 마운트) | USB CP2102N, 460800 bps | `sllidar_ros2` |
 | IMU | **WIT WT901C** | USB, 9600 bps (기본 비활성) | `wit_imu_driver` |
-| 카메라 | **Orbbec Astra** 뎁스 카메라 (640×480 @ 10 fps) | USB, OrbbecSDK / OpenNI | `orbbec_camera` |
-| 디스플레이 | 차량 전면 모니터 (도트 매트릭스 표정) | HDMI + pygame | `vehicle_face` |
+| 뎁스 카메라 | **Orbbec Astra** (640×480 @ 10 fps, 모니터 하단 마운트) | USB, OrbbecSDK / OpenNI | `orbbec_camera` |
+| 웹캠 | 번호판 인식용 USB 웹캠 | USB | `car_license_plate` |
+| 디스플레이 | 차량 전면 모니터 (글로우 표정 4종) | HDMI + pygame | `vehicle_face` |
+| 보조 화면 | 7인치 터치 디스플레이 (라즈베리파이 측) | HDMI / DSI | — |
 | 오디오 | USB 스피커 (`mpg123` 재생) | ALSA / PulseAudio | `jetson_tts_server.py` |
 | 조종기 | XInput 게임패드 (`sudo modprobe xpad`) | USB | `joystick_teleop` |
 
 **로봇 치수** — 차체 `0.56 × 0.50 × 0.26 m`, 지면~`base_link` 0.26 m, LiDAR 높이 0.47 m,
 Nav2 footprint `[[0.28, 0.25], [0.28, -0.25], [-0.28, -0.25], [-0.28, 0.25]]`
+
+**섀시** — 알루미늄 프로파일 프레임 + 아크릴/PC 패널 조합. 상판은 투명판이라 내부 배선·PDB·모터
+드라이버가 그대로 보이고, 전면 패널에는 OMZ 마스코트 로고, 측면에는 `CCTV 녹화중` 고지 스티커가 부착되어 있습니다.
+
+---
+
+## 📸 실물 & 하드웨어 참고자료
+
+### 로봇 실물
+
+| | |
+|---|---|
+| <img src="docs/images/robot_front_face.jpg" width="100%"/> | <img src="docs/images/robot_overview.jpg" width="100%"/> |
+| **정면** — 표정 디스플레이와 그 하단에 가로로 붙은 Orbbec Astra 뎁스 카메라, 상단 폴의 RPLIDAR C1. 화면은 `stop`(노랑) 상태. | **전경** — 알루미늄 프로파일 섀시와 OMZ 로고, 투명 상판 아래 전원·제어 보드, MDROBOT 인휠 모터. |
+| <img src="docs/images/robot_top.jpg" width="100%"/> | <img src="docs/images/hardware_diagram.png" width="100%"/> |
+| **상부** — 섀시 내부에 보관된 XInput 게임패드(`joystick_teleop`용), WIT IMU, inkel 전원 어댑터, `CCTV 녹화중` 고지 스티커. | **하드웨어 구성도** — 전원 계통(빨강)과 데이터/제어 계통(파랑) 분리. |
+
+### 전원 & 연산 계통
+
+```mermaid
+flowchart LR
+    B24["🔋 24V 배터리<br/>(구동 전원)"]
+    B12["🔋 12V 배터리<br/>(연산·센서 전원)"]
+    PDB["Power Distribution Board<br/>(PDB)"]
+    MD["Motor Driver<br/>md200t"]
+    WHEEL["In-Wheel Motor ×2"]
+    JET["Jetson Orin Nano<br/>ROS 2 Humble"]
+
+    IMU["IMU · WT901C"]
+    LID["LiDAR · RPLIDAR C1"]
+    CAM["Webcam"]
+    DEP["Depth Camera · Astra"]
+
+    B24 --> PDB --> MD --> WHEEL
+    B12 --> JET
+    IMU -- "센서 데이터" --> JET
+    LID -- "센서 데이터" --> JET
+    CAM -- "센서 데이터" --> JET
+    DEP -- "센서 데이터" --> JET
+    JET <-- "제어 신호 / RS485" --> MD
+
+    classDef power fill:#ffe8e8,stroke:#d33,color:#000
+    classDef data fill:#e8f0ff,stroke:#36c,color:#000
+    class B24,B12,PDB,MD,WHEEL power
+    class IMU,LID,CAM,DEP,JET data
+```
+
+> 구동 전원(24 V)과 연산 전원(12 V)을 **배터리 단계부터 분리**했습니다. 모터 기동 시 발생하는
+> 전압 강하가 Jetson·센서로 전파되지 않아, 급가감속 중에도 LiDAR/IMU 스트림이 끊기지 않습니다.
+
+구성도에는 웹캠이 Jetson에 직결된 것으로 표기되어 있지만, 저장소의 번호판 인식 코드(`external/car_license_plate/`)는 라즈베리파이에서 실행되는 것을 전제로 작성되어 있습니다.
+카메라 연결 위치는 운용 구성에 따라 달라질 수 있습니다.
+
+### 표정 상태 4종
+
+`face_display.py`의 `COLORS` 정의와 실제 화면입니다. 상태는 `/emotion_state` 토픽으로 전환되며,
+키보드 `1~4`로도 수동 테스트할 수 있습니다.
+
+| | | | |
+|---|---|---|---|
+| <img src="docs/images/face_stop.png" width="100%"/> | <img src="docs/images/face_driving.png" width="100%"/> | <img src="docs/images/face_obstacle.png" width="100%"/> | <img src="docs/images/face_enforce.png" width="100%"/> |
+| **`stop`** · 멈춤 | **`driving`** · 주행 | **`obstacle`** · 장애물 | **`enforce`** · 단속 |
+| `rgb(255, 210, 63)` | `rgb(93, 255, 90)` | `rgb(255, 138, 60)` | `rgb(255, 59, 48)` |
+| 아래로 볼록한 반달 눈<br/>+ 짧은 일자 입 (차분) | 위로 휜 반달 눈 `^^`<br/>+ 활짝 웃는 입 (활기) | 크고 동그란 눈<br/>+ 작은 `o` 입 (놀람) | 사선 찡그린 눈<br/>+ 아래로 휜 입 (경계) |
+| 키 `1` | 키 `2` | 키 `3` | 키 `4` |
+
+pygame에는 글로우 효과가 없어, 같은 도형을 배경색 쪽으로 단계별로 섞어가며 여러 겹 덧그리는
+방식으로 발광을 흉내냅니다 (`glow_circle` · `glow_arc` · `glow_round_rect`).
 
 ---
 
@@ -169,7 +242,10 @@ omz_ws/
 │   ├── lidar_scan_viewer.py          # 브라우저로 LaserScan 실시간 확인
 │   ├── yaw_compare.py                # 휠 오돔 yaw vs IMU yaw 비교
 │   └── run_rviz_lidar.sh             # Jetson 데스크톱에서 RViz 띄우기
-├── docs/                             # 지도 원본 · TF 프레임 그래프 · MD 드라이버 매뉴얼
+├── docs/
+│   ├── images/                       # 📸 실물 사진 · 하드웨어 구성도 · 표정 캡처
+│   ├── generated/                    # TF 프레임 그래프 · 지도 편집본
+│   └── manuals/                      # MD 드라이버 매뉴얼
 └── robot_run_commands.md             # 로봇에서 자주 쓰는 명령 치트시트
 ```
 
@@ -226,7 +302,8 @@ omz_ws/
   - 우선순위 `enforce` → `obstacle` → `driving` → `stop`
   - 전방 60° 최소거리 **1.0 m 진입 / 2.2 m 해제** 히스테리시스로 표정 깜빡임 방지
   - 단속(`enforce`) 상태는 10초 뒤 자동 해제
-- `face_display` — pygame 도트 매트릭스 표정 창 (키 `1~4` 수동 전환, `ESC` 종료)
+- `face_display` — pygame 글로우 표정 창, 상태별 색·눈·입 모양 전환 (키 `1~4` 수동 전환, `ESC` 종료)
+  → [표정 4종 미리보기](#-실물--하드웨어-참고자료)
 
 </details>
 
