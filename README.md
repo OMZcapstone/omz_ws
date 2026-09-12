@@ -533,6 +533,42 @@ sequenceDiagram
 
 ## 🗺️ 지도 & Keepout 마스크
 
+주행 지도는 **실제 도면 → SLAM 점유 격자 → Keepout 마스크**의 3단계를 거쳐 만들어집니다.
+
+<div align="center">
+  <img src="docs/images/parky_map.png" width="880"/>
+</div>
+
+| 단계 | 내용 |
+|------|------|
+| **① 정보대 지하주차장 도면** | 파란 칸이 주차면, `52`·`53`·`56`·`57` 구역과 하단 장애인 주차구역으로 구성됩니다. 빨간 화살표는 중앙 주차섬을 한 바퀴 도는 **순찰 경로**입니다. |
+| **② SLAM 맵핑** | `slam_toolbox`로 작성한 점유 격자. 벽·기둥뿐 아니라 **당시 주차되어 있던 차량까지 장애물로 기록**되고, 도면에 있던 주차면 구획선은 남지 않습니다. |
+| **③ Keepout 필터 적용** | 밝은 띠가 주행 허용 통로, 나머지 어두운 영역이 **진입 금지 구역**입니다. |
+
+### Keepout 필터가 필요한 이유
+
+SLAM 맵만으로 Nav2를 돌리면 플래너는 **비어 있는 주차면 안쪽으로도 경로를 만듭니다.** 격자상으로는
+그냥 빈 공간이기 때문입니다. 하지만 그곳은 차량이 상시 드나드는 공간이라 순찰 로봇이 들어가면 안 됩니다.
+Keepout 마스크로 통로만 허용하면, 장애물이 없어도 플래너가 주차면으로 경로를 내지 않습니다.
+
+③의 통로 경계가 딱 끊기지 않고 **부드럽게 번지는 것**은 마스크 YAML이 `mode: scale`이기 때문입니다.
+이진 차단이 아니라 밝기에 비례한 **계조 비용**으로 반영되어, 통로 가장자리로 갈수록 비용이 완만하게
+올라갑니다. 그 결과 플래너가 벽에 붙지 않고 통로 중앙선을 따라가게 되며, 마스크 파일명의
+`centerline_bias`가 바로 이 의도를 가리킵니다.
+
+적용은 `nav2_navigation.launch.py`가 세 노드를 함께 띄우는 방식입니다.
+
+| 노드 | 역할 |
+|------|------|
+| `map_server` (`keepout_filter_mask_server`) | 마스크 PGM을 `/keepout_filter_mask`로 발행 |
+| `costmap_filter_info_server` | `type: 0`(KeepoutFilter), `base: 0.0`, `multiplier: 1.0`을 `/costmap_filter_info`로 발행 |
+| `lifecycle_manager_keepout_filter` | 위 두 노드의 생명주기 자동 기동 |
+
+`nav2_params.yaml`에서는 **global·local costmap 양쪽에** `KeepoutFilter` 플러그인을 등록해,
+전역 경로 계획과 지역 회피 모두에 같은 제약이 걸리도록 했습니다.
+
+### 지도 파일
+
 | 파일 | 용도 |
 |------|------|
 | `maps/current/om_map_original_cleaned.{yaml,pgm}` | **Nav2 기본 지도** (resolution 0.05, origin `-22.6, -8.12`) |

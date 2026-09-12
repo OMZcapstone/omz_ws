@@ -9,6 +9,7 @@
 | `robot_overview.jpg` | 로봇 전경 — OMZ 로고 패널, 알루미늄 프로파일 섀시, 인휠 모터 |
 | `robot_top.jpg` | 상부 내부 — 게임패드, WIT IMU, 전원 어댑터, CCTV 고지 스티커 |
 | `hardware_diagram.png` | 하드웨어 구성도 — 전원(24V/12V, PDB) 및 데이터 계통 |
+| `parky_map.png` | 지도 3단계 — 지하주차장 도면 · SLAM 맵 · Keepout 마스크 |
 | `face_stop.png` | 표정 `stop` (노랑) |
 | `face_driving.png` | 표정 `driving` (초록) |
 | `face_obstacle.png` | 표정 `obstacle` (주황) |
