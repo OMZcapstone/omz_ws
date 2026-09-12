@@ -674,6 +674,19 @@ python3 tools/yaw_compare.py           # 휠 오돔 yaw vs IMU yaw 비교
 `src/` 아래 벤더 패키지(DynamixelSDK, turtlebot3, sllidar_ros2, OrbbecSDK_ROS2,
 md_motor_driver_ros2, ros_wit_imu_node)와 `external/`의 SDK는 각 원저작자의 라이선스를 따릅니다.
 
+> ⚠️ **외부 라이선스 유의사항** — YOLO 기반 패키지(`yolo_object_detection`,
+> `apps/car_number_db`, `external/car_license_plate`)는
+> [Ultralytics](https://github.com/ultralytics/ultralytics)에 의존하며,
+> 이 라이브러리와 사전학습 가중치(`yolov8n.pt`, `best.pt`)는 **AGPL-3.0**입니다.
+>
+> AGPL-3.0은 강한 카피레프트 라이선스입니다. GPL과 달리 배포할 때뿐 아니라
+> **네트워크를 통해 사용자에게 제공하기만 해도** 의무가 발생하며, 그 범위가 결합 저작물 전체에 미칩니다.
+> 이 저장소를 오픈소스로 공개하는 것은 그 조건에 부합합니다.
+> 다만 비공개 제품으로 배포하거나 서비스로 운영하려면 결합 저작물 전체를 AGPL-3.0으로 공개하거나
+> [Ultralytics 상용 라이선스](https://www.ultralytics.com/license)를 취득해야 합니다.
+>
+> EasyOCR은 Apache-2.0이라 이러한 의무가 없습니다.
+
 ### 크레딧
 
 - MD 모터 드라이버 ROS 2 포팅 — [c-jho](https://github.com/c-jho), [Lee-seokgwon](https://github.com/Lee-seokgwon)

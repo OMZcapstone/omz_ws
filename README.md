@@ -693,6 +693,20 @@ The in-house packages are **Apache-2.0** (`vehicle_face` is **MIT**). The vendor
 `src/` (DynamixelSDK, turtlebot3, sllidar_ros2, OrbbecSDK_ROS2, md_motor_driver_ros2,
 ros_wit_imu_node) and the SDKs under `external/` remain under their original licenses.
 
+> ⚠️ **Third-party license notice** — the YOLO-based packages (`yolo_object_detection`,
+> `apps/car_number_db`, `external/car_license_plate`) depend on
+> [Ultralytics](https://github.com/ultralytics/ultralytics), which is licensed under
+> **AGPL-3.0**, as are its pretrained weights (`yolov8n.pt`, `best.pt`).
+>
+> AGPL-3.0 is a strong copyleft license. Unlike the GPL, its obligations are triggered not only
+> by distributing the software but also by making it available to users over a network, and they
+> extend to the combined work. Publishing this repository as open source is consistent with that.
+> However, anyone shipping it as a closed-source product or operating it as a service must either
+> release the combined work under AGPL-3.0 or obtain an
+> [Ultralytics Enterprise License](https://www.ultralytics.com/license).
+>
+> EasyOCR is Apache-2.0 and carries no such requirement.
+
 ### Credits
 
 - MD motor driver ROS 2 port — [c-jho](https://github.com/c-jho), [Lee-seokgwon](https://github.com/Lee-seokgwon)
