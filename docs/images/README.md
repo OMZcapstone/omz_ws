@@ -1,23 +1,24 @@
-# 이미지 자산
+# Image Assets
 
-루트 `README.md`에서 참조하는 사진·다이어그램을 이 디렉터리에 둡니다.
-아래 파일명을 그대로 사용해야 README의 이미지가 표시됩니다.
+Photos and diagrams referenced by the root `README.md` live here.
+The filenames below must be kept exactly as written, or the README images will not resolve.
 
-| 파일명 | 내용 |
-|--------|------|
-| `robot_front_face.jpg` | 로봇 정면 — 표정 디스플레이 + Orbbec Astra 뎁스 카메라 + 상단 LiDAR |
-| `robot_overview.jpg` | 로봇 전경 — OMZ 로고 패널, 알루미늄 프로파일 섀시, 인휠 모터 |
-| `robot_top.jpg` | 상부 내부 — 게임패드, WIT IMU, 전원 어댑터, CCTV 고지 스티커 |
-| `hardware_diagram.png` | 하드웨어 구성도 — 전원(24V/12V, PDB) 및 데이터 계통 |
-| `parky_map.png` | 지도 3단계 — 지하주차장 도면 · SLAM 맵 · Keepout 마스크 |
-| `face_stop.png` | 표정 `stop` (노랑) |
-| `face_driving.png` | 표정 `driving` (초록) |
-| `face_obstacle.png` | 표정 `obstacle` (주황) |
-| `face_enforce.png` | 표정 `enforce` (빨강) |
+| Filename | Contents |
+|----------|----------|
+| `robot_front_face.jpg` | Robot front — face display, Orbbec Astra depth camera, LiDAR on top |
+| `robot_overview.jpg` | Robot overview — OMZ logo panel, aluminium-profile chassis, in-wheel motor |
+| `robot_top.jpg` | Top view — gamepad, WIT IMU, power adapters, CCTV notice sticker |
+| `hardware_diagram.png` | Hardware diagram — power (24 V / 12 V, PDB) and data paths |
+| `parky_map.png` | Three mapping stages — floor plan, SLAM map, keepout-filtered map |
+| `face_stop.png` | Expression `stop` (yellow) |
+| `face_driving.png` | Expression `driving` (green) |
+| `face_obstacle.png` | Expression `obstacle` (orange) |
+| `face_enforce.png` | Expression `enforce` (red) |
 
-## 규격
+## Specifications
 
-- **실물 사진**: JPG, 긴 변 1600 px, quality 85 (원본 4032 px PNG는 장당 13~20 MB라 저장소를 불필요하게 키웁니다).
-- **표정 캡처 · 구성도**: PNG, 알파 채널 없이 저장.
-- 교체 시에도 같은 규격을 유지하세요. 현재 8개 파일 합계 약 1.6 MB입니다.
-- 인물·차량 번호판이 찍힌 사진은 공개 전 마스킹하세요.
+- **Photographs**: JPG, 1600 px on the long edge, quality 85. The original 4032 px PNGs are
+  13–20 MB each and bloat the repository unnecessarily.
+- **Expression captures and diagrams**: PNG, saved without an alpha channel.
+- Keep these specifications when replacing files. The current nine files total about 1.6 MB.
+- Mask any faces or license plates before publishing.
