@@ -108,7 +108,7 @@ flowchart LR
 
 | 구분 | 장비 | 인터페이스 | 관련 패키지 |
 |------|------|-----------|-------------|
-| 구동부 | **MDROBOT 듀얼채널 모터 드라이버** (md200t / md400t) | RS485 / USB, 19200 bps | `md_controller` |
+| 구동부 | **MDROBOT 듀얼채널 모터 드라이버** (md200t) | RS485 / USB, 19200 bps | `md_controller` |
 | 바퀴 | 인휠 모터 ×2 (반지름 65 mm, 축간 288 mm) + 후방 캐스터 | — | URDF `two_wheel_caster_robot` |
 | LiDAR | **Slamtec RPLIDAR C1** | USB CP2102N, 460800 bps | `sllidar_ros2` |
 | IMU | **WIT WT901C** | USB, 9600 bps (기본 비활성) | `wit_imu_driver` |
