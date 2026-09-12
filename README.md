@@ -107,6 +107,17 @@ flowchart LR
 
 ## 🔩 하드웨어 구성
 
+24 V 구동 계통과 12 V 연산·센서 계통을 **배터리 단계부터 분리**한 이중 전원 구조입니다.
+구동 전류는 PDB를 거쳐 모터 드라이버로만 흐르고, LiDAR·IMU·카메라는 모두 Jetson Orin Nano로
+모입니다. 모터 기동 시의 전압 강하가 연산부로 전파되지 않아, 급가감속 중에도 센서 스트림이 끊기지 않습니다.
+
+<div align="center">
+  <img src="docs/images/hardware_diagram.png" width="660"/>
+</div>
+
+<sub>※ 구성도에는 웹캠이 Jetson 직결로 표기되어 있으나, 번호판 인식 코드(<code>external/car_license_plate/</code>)는
+라즈베리파이 실행을 전제로 작성되어 있습니다. 카메라 연결 위치는 운용 구성에 따라 달라질 수 있습니다.</sub>
+
 | 구분 | 장비 | 인터페이스 | 관련 패키지 |
 |------|------|-----------|-------------|
 | 메인 보드 | **NVIDIA Jetson Orin Nano** | — | ROS 2 전체 스택 |
@@ -134,48 +145,10 @@ Nav2 footprint `[[0.28, 0.25], [0.28, -0.25], [-0.28, -0.25], [-0.28, 0.25]]`
 
 ### 로봇 실물
 
-| | |
-|---|---|
-| <img src="docs/images/robot_front_face.jpg" width="100%"/> | <img src="docs/images/robot_overview.jpg" width="100%"/> |
-| **정면** — 표정 디스플레이와 그 하단에 가로로 붙은 Orbbec Astra 뎁스 카메라, 상단 폴의 RPLIDAR C1. 화면은 `stop`(노랑) 상태. | **전경** — 알루미늄 프로파일 섀시와 OMZ 로고, 투명 상판 아래 전원·제어 보드, MDROBOT 인휠 모터. |
-| <img src="docs/images/robot_top.jpg" width="100%"/> | <img src="docs/images/hardware_diagram.png" width="100%"/> |
-| **상부** — 섀시 내부에 보관된 XInput 게임패드(`joystick_teleop`용), WIT IMU, inkel 전원 어댑터, `CCTV 녹화중` 고지 스티커. | **하드웨어 구성도** — 전원 계통(빨강)과 데이터/제어 계통(파랑) 분리. |
-
-### 전원 & 연산 계통
-
-```mermaid
-flowchart LR
-    B24["🔋 24V 배터리<br/>(구동 전원)"]
-    B12["🔋 12V 배터리<br/>(연산·센서 전원)"]
-    PDB["Power Distribution Board<br/>(PDB)"]
-    MD["Motor Driver<br/>md200t"]
-    WHEEL["In-Wheel Motor ×2"]
-    JET["Jetson Orin Nano<br/>ROS 2 Humble"]
-
-    IMU["IMU · WT901C"]
-    LID["LiDAR · RPLIDAR C1"]
-    CAM["Webcam"]
-    DEP["Depth Camera · Astra"]
-
-    B24 --> PDB --> MD --> WHEEL
-    B12 --> JET
-    IMU -- "센서 데이터" --> JET
-    LID -- "센서 데이터" --> JET
-    CAM -- "센서 데이터" --> JET
-    DEP -- "센서 데이터" --> JET
-    JET <-- "제어 신호 / RS485" --> MD
-
-    classDef power fill:#ffe8e8,stroke:#d33,color:#000
-    classDef data fill:#e8f0ff,stroke:#36c,color:#000
-    class B24,B12,PDB,MD,WHEEL power
-    class IMU,LID,CAM,DEP,JET data
-```
-
-> 구동 전원(24 V)과 연산 전원(12 V)을 **배터리 단계부터 분리**했습니다. 모터 기동 시 발생하는
-> 전압 강하가 Jetson·센서로 전파되지 않아, 급가감속 중에도 LiDAR/IMU 스트림이 끊기지 않습니다.
-
-구성도에는 웹캠이 Jetson에 직결된 것으로 표기되어 있지만, 저장소의 번호판 인식 코드(`external/car_license_plate/`)는 라즈베리파이에서 실행되는 것을 전제로 작성되어 있습니다.
-카메라 연결 위치는 운용 구성에 따라 달라질 수 있습니다.
+| | | |
+|:---:|:---:|:---:|
+| <img src="docs/images/robot_front_face.jpg" width="250"/> | <img src="docs/images/robot_overview.jpg" width="250"/> | <img src="docs/images/robot_top.jpg" width="250"/> |
+| **정면**<br/>표정 디스플레이 · Astra 뎁스 카메라 · 상단 RPLIDAR | **전경**<br/>프로파일 섀시 · OMZ 로고 · 인휠 모터 | **상부**<br/>내부 배선 · 게임패드 · CCTV 고지 |
 
 ### 표정 상태 4종
 
