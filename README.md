@@ -7,11 +7,7 @@
 SLAM으로 만든 지도 위를 Nav2로 순찰하며, 카메라로 차량·보행자를 인식하고
 번호판 DB와 대조해 **불법주차를 판별**하고 **음성·표정으로 경고**합니다.
 
-<a href="https://youtu.be/aI9p7-weRZc">
-  <img src="https://img.youtube.com/vi/aI9p7-weRZc/sddefault.jpg" width="640" alt="OMZ 시연 영상 — 클릭하면 YouTube에서 재생됩니다"/>
-</a>
-
-**▶️ [시연 영상 보기](https://youtu.be/aI9p7-weRZc)** · 클릭하면 YouTube에서 재생됩니다
+[![시연 영상](https://img.shields.io/badge/▶%20시연%20영상-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/aI9p7-weRZc)
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Humble-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/humble/)
 [![Nav2](https://img.shields.io/badge/Nav2-AMCL%20%2B%20DWB%20%2B%20KeepoutFilter-0A7EA4)](https://navigation.ros.org/)
