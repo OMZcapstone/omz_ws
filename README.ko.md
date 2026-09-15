@@ -471,7 +471,7 @@ sequenceDiagram
     PI->>PI: YOLO 번호판 검출 + EasyOCR 판독
     PI->>API: POST /verify (ocr_text)
     API-->>PI: best_plate, score, confident
-    Note over PI,API: 유사도 0.80 미만 또는 미등록이면 불법주차 후보
+    Note over PI,API: 유사도 0.80 이상 또는 등록이면 불법주차 후보
 
     PI->>IPN: TCP 9997 vehicles[id, x, y, z, frame, box]
     IPN->>IPN: TF camera_frame → map 변환
