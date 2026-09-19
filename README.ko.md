@@ -454,7 +454,7 @@ uvicorn app:app --reload        # http://127.0.0.1:8000/docs
 python camera_entry.py          # 입차 게이트 카메라
 python camera_exit.py           # 출차 게이트 카메라
 ```
-
+→ 캡스톤디자인 시연에서는 입차된 차량 번호판을 임시로 DB에 저장해놓은 뒤 대조하는 걸로 시연함.
 ---
 
 ## 🚨 불법주차 단속 파이프라인
